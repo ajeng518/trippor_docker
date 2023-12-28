@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.trippor.comment.model.mapper.CommentMapper">
+
+    <resultMap type="parentCommentDto" id="comment">
+        <result column="parent_id" property="parentId"/>
+        <result column="user_id" property="userId"/>
+        <result column="user_name" property="userName"/>
+        <result column="context" property="context"/>
+        <result column="register_time" property="registerTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="delete_time" property="deleteTime"/>
+        <result column="article_no" property="articleNo"/>
+    </resultMap>
+
+    <resultMap type="parentCommentDto" id="viewComment" extends="comment">
+        <collection property="childComments" column="parent_id" javaType="list" ofType="parentCommentDto"
+                    select="childList"/>
+    </resultMap>
+
+    <resultMap type="childCommentDto" id="child">
+        <result column="parent_id" property="parentId"/>
+        <result column="child_id" property="childId"/>
+        <result column="user_id" property="userId"/>
+        <result column="user_name" property="userName"/>
+        <result column="context" property="context"/>
+        <result column="register_time" property="registerTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="delete_time" property="deleteTime"/>
+    </resultMap>
+
+    <insert id="writeComment" parameterType="parentCommentDto">
+        insert into parent_comment (user_id, context, article_no)
+        values (#{userId}, #{context}, #{articleNo})
+        <selectKey resultType="int" keyProperty="parentId" order="AFTER">
+            select last_insert_id()
+        </selectKey>
+    </insert>
+
+    <insert id="writeChildComment" parameterType="childCommentDto">
+        insert into child_comment (parent_id, user_id, context)
+        values (#{parentId}, #{userId}, #{context})
+        <selectKey resultType="int" keyProperty="childId" order="AFTER">
+            select last_insert_id()
+        </selectKey>
+    </insert>
+
+    <select id="getCommentById" parameterType="int" resultMap="comment">
+        select c.parent_id, c.user_id, c.context, c.register_time, c.update_time, c.delete_time, m.user_name, c.article_no
+        from parent_comment c, members m
+        where c.user_id = m.user_id and parent_id = #{parentId};
+    </select>
+
+    <select id="listParentComment" parameterType="int" resultMap="comment">
+        select c.parent_id, c.user_id, c.context, c.register_time, c.update_time, c.delete_time, m.user_name, c.article_no
+        from parent_comment c, members m
+        where c.user_id = m.user_id and c.article_no = #{articleNo}
+        order by c.register_time desc
+    </select>
+
+    <select id="childList" parameterType="int" resultMap="child">
+        select c.child_id, c.parent_id, c.user_id, c.context, c.register_time, c.update_time, m.user_name
+        from child_comment c, members m
+        where c.user_id = m.user_id and c.parent_id = #{parentId}
+    </select>
+
+    <select id="getChildById" parameterType="int" resultMap="child">
+        select c.child_id, c.parent_id, c.user_id, c.context, c.register_time, c.update_time, m.user_name
+        from child_comment c, members m
+        where c.user_id = m.user_id and c.child_id = #{childId}
+    </select>
+
+    <update id="deleteParent" parameterType="int">
+        update parent_comment
+        set context = "삭제된 댓글입니다.", delete_time = now()
+        where parent_id = #{parentId}
+    </update>
+
+    <update id="modifyParent" parameterType="parentCommentDto">
+        update parent_comment
+        set context = #{context}, update_time = now()
+        where parent_id = #{parentId}
+    </update>
+
+    <update id="modifyChild" parameterType="childCommentDto">
+        update child_comment
+        set context = #{context}, update_time = now()
+        where child_id = #{childId}
+    </update>
+
+<!--    <delete id="deleteChild" parameterType="int">-->
+<!--        update child_comment-->
+<!--        set context = "삭제된 댓글 입니다.", deleted_time = now()-->
+<!--        where child_id = #{childId}-->
+<!--    </delete>-->
+
+        <delete id="deleteChild" parameterType="int">
+            delete from child_comment
+            where child_id = #{childId}
+        </delete>
+
+    <!--    <insert id="registerFile" parameterType="boardDto">-->
+    <!--        insert into file_info (article_no, save_folder, original_file, save_file)-->
+    <!--        values-->
+    <!--        <foreach collection="fileInfos" item="fileinfo" separator=" , ">-->
+    <!--            (#{articleNo}, #{fileinfo.saveFolder}, #{fileinfo.originalFile}, #{fileinfo.saveFile})-->
+    <!--        </foreach>-->
+    <!--    </insert>-->
+
+    <!--    <sql id="search">-->
+    <!--        <if test="word != null and word != ''">-->
+    <!--            <if test="key == 'subject'">-->
+    <!--                and subject like concat('%', #{word}, '%')-->
+    <!--            </if>-->
+    <!--            <if test="key != 'subject'">-->
+    <!--                and ${key} = #{word}-->
+    <!--            </if>-->
+    <!--        </if>-->
+    <!--    </sql>-->
+
+
+    <!--    <select id="listChildComment" parameterType="int" resultMap="comment">-->
+    <!--        select c.parent_id, c.user_id, c.content, c.register_time, c.update_time, m.user_name-->
+    <!--        from parent_comment c, members m-->
+    <!--        where c.user_id = m.user_id-->
+    <!--        &lt;!&ndash;        <include refid="search"></include>&ndash;&gt;-->
+    <!--        order by c.register_time desc-->
+    <!--        &lt;!&ndash;        limit #{start}, #{listsize}&ndash;&gt;-->
+    <!--    </select>-->
+
+    <!--    <select id="getTotalArticleCount" parameterType="map" resultType="int">-->
+    <!--        select count(article_no)-->
+    <!--        from board-->
+    <!--        <where>-->
+    <!--            <include refid="search"></include>-->
+    <!--        </where>-->
+    <!--    </select>-->
+
+    <!--    <select id="getArticle" parameterType="int" resultMap="viewArticle">-->
+    <!--        select b.article_no, b.user_id, b.subject, b.content, b.hit, b.register_time, m.user_name-->
+    <!--        from board b, members m-->
+    <!--        where b.user_id = m.user_id-->
+    <!--        and b.article_no = #{articleNo}-->
+    <!--    </select>-->
+
+    <!--    <select id="fileInfoList" resultMap="file">-->
+    <!--        select save_folder, original_file, save_file-->
+    <!--        from file_info-->
+    <!--        where article_no = #{articleNo}-->
+    <!--    </select>-->
+
+    <!--    <update id="updateHit" parameterType="int">-->
+    <!--        update board-->
+    <!--        set hit = hit + 1-->
+    <!--        where article_no = #{articleNo}-->
+    <!--    </update>-->
+
+    <!--    <update id="modifyArticle" parameterType="boardDto">-->
+    <!--        update board-->
+    <!--        set subject = #{subject}, content = #{content}-->
+    <!--        where article_no = #{articleNo}-->
+    <!--    </update>-->
+
+    <!--    <delete id="deleteFile" parameterType="int">-->
+    <!--        delete from file_info-->
+    <!--        where article_no = #{articleNo}-->
+    <!--    </delete>-->
+
+    <!--    <delete id="deleteArticle" parameterType="int">-->
+    <!--        delete from board-->
+    <!--        where article_no = #{articleNo}-->
+    <!--    </delete>-->
+
+</mapper>
